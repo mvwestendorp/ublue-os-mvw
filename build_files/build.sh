@@ -19,7 +19,7 @@ dnf5 install -y code
 
 # Configure VS Code for podman and set default preferences
 mkdir -p /etc/skel/.config/Code/User
-cp /ctx/build_files/vscode-settings.json /etc/skel/.config/Code/User/settings.json
+cp /ctx/vscode-settings.json /etc/skel/.config/Code/User/settings.json
 
 # Enable podman socket for all users by default
 systemctl --global enable podman.socket
@@ -69,7 +69,7 @@ rm -rf /tmp/k9s
 
 # Create distrobox assembly config for new users
 mkdir -p /etc/skel/.config/distrobox
-cp /ctx/build_files/distrobox.ini /etc/skel/.config/distrobox/distrobox.ini
+cp /ctx/distrobox.ini /etc/skel/.config/distrobox/distrobox.ini
 
 # Use a COPR Example:
 #
