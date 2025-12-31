@@ -14,8 +14,27 @@ dnf5 install -y tmux hunspell-nl pandoc
 
 # Install vscode
 rpm --import https://packages.microsoft.com/keys/microsoft.asc
-echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\nautorefresh=1\ntype=rpm-md\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" | tee /etc/yum.repos.d/vscode.repo 
+echo -e "[code]\nname=Visual Studio Code\nbaseurl=https://packages.microsoft.com/yumrepos/vscode\nenabled=1\nautorefresh=1\ntype=rpm-md\ngpgcheck=1\ngpgkey=https://packages.microsoft.com/keys/microsoft.asc" | tee /etc/yum.repos.d/vscode.repo
 dnf5 install -y code
+
+# Configure VS Code for podman and set default preferences
+mkdir -p /etc/skel/.config/Code/User
+
+# Default settings that users can override
+cat > /etc/skel/.config/Code/User/settings.json << 'EOF'
+{
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "podman.dockerPath": "podman",
+    "dev.containers.dockerPath": "podman",
+    "remote.containers.dockerPath": "podman"
+}
+EOF
+
+# Enable podman socket for all users by default
+systemctl --global enable podman.socket
+
+# Create docker compatibility symlink
+ln -sf /usr/bin/podman /usr/local/bin/docker
 
 # Use a COPR Example:
 #
