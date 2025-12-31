@@ -36,6 +36,22 @@ systemctl --global enable podman.socket
 # Create docker compatibility symlink
 ln -sf /usr/bin/podman /usr/local/bin/docker
 
+#### Security Hardening
+
+# Ensure SELinux is enforcing
+sed -i 's/^SELINUX=.*/SELINUX=enforcing/' /etc/selinux/config
+
+# Install security scanning tools
+dnf5 install -y openscap-scanner scap-security-guide
+
+# Enable and configure firewall
+dnf5 install -y firewalld
+systemctl enable firewalld
+
+# Clean up package cache to reduce image size and attack surface
+dnf5 clean all
+rm -rf /var/cache/dnf5/*
+
 # Use a COPR Example:
 #
 # dnf5 -y copr enable ublue-os/staging

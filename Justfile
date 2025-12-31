@@ -317,3 +317,62 @@ format:
     fi
     # Run shfmt on all Bash scripts
     /usr/bin/find . -iname "*.sh" -type f -exec shfmt --write "{}" ';'
+
+# Scan the built image for vulnerabilities using Trivy
+[group('Security')]
+scan-image $target_image=("localhost/" + image_name) $tag=default_tag:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    echo "Scanning ${target_image}:${tag} for vulnerabilities..."
+
+    # Check if trivy is installed
+    if command -v trivy &> /dev/null; then
+        trivy image --severity HIGH,CRITICAL "${target_image}:${tag}"
+    elif command -v grype &> /dev/null; then
+        grype "${target_image}:${tag}"
+    else
+        echo "No vulnerability scanner found. Install trivy or grype:"
+        echo "  dnf install -y trivy"
+        echo "  or"
+        echo "  curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh"
+        exit 1
+    fi
+
+# Scan image and generate detailed JSON report
+[group('Security')]
+scan-image-report $target_image=("localhost/" + image_name) $tag=default_tag:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if ! command -v trivy &> /dev/null; then
+        echo "Trivy not found. Install with: dnf install -y trivy"
+        exit 1
+    fi
+
+    echo "Generating detailed vulnerability report for ${target_image}:${tag}..."
+    mkdir -p security-reports
+    trivy image --format json --output security-reports/trivy-report.json "${target_image}:${tag}"
+    trivy image --format sarif --output security-reports/trivy-report.sarif "${target_image}:${tag}"
+    echo "Reports generated in security-reports/"
+
+# Run security compliance scan with OpenSCAP
+[group('Security')]
+scan-compliance:
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    if ! command -v oscap &> /dev/null; then
+        echo "OpenSCAP not found. Install with: dnf install -y openscap-scanner scap-security-guide"
+        exit 1
+    fi
+
+    echo "Running OpenSCAP compliance scan..."
+    mkdir -p security-reports
+    oscap xccdf eval \
+      --profile xccdf_org.ssgproject.content_profile_standard \
+      --results security-reports/scan-results.xml \
+      --report security-reports/scan-report.html \
+      /usr/share/xml/scap/ssg/content/ssg-fedora-ds.xml || true
+
+    echo "Report generated: security-reports/scan-report.html"

@@ -34,6 +34,7 @@ jobs:
       contents: read
       packages: write
       id-token: write
+      security-events: write
 
     steps:
       - name: Prepare environment
@@ -116,6 +117,27 @@ jobs:
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           oci: false
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@a20de5420d57c4102486cdd9578b45609c99d7eb # v0.30.0
+        with:
+          image-ref: 'localhost/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@6db8d6351fd0be61f9ed8ebd12ccd35dcec51fea # v3.28.6
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run Trivy vulnerability scanner (Table output)
+        uses: aquasecurity/trivy-action@a20de5420d57c4102486cdd9578b45609c99d7eb # v0.30.0
+        with:
+          image-ref: 'localhost/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
 
       # Rechunk is a script that we use on Universal Blue to make sure there isnt a single huge layer when your image gets published.
       # This does not make your image faster to download, just provides better resumability and fixes a few errors.
