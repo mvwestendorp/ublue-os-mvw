@@ -34,6 +34,7 @@ EOF
 systemctl --global enable podman.socket
 
 # Create docker compatibility symlink
+mkdir -p /usr/local/bin
 ln -sf /usr/bin/podman /usr/local/bin/docker
 
 #### Security Hardening
