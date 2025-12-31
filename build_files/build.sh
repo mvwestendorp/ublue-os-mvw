@@ -25,12 +25,11 @@ cp /ctx/vscode-settings.json /etc/skel/.config/Code/User/settings.json
 systemctl --global enable podman.socket
 
 # Create docker compatibility symlink
-# Ensure /usr/local exists as a directory (remove if it's a file)
-if [ -f /usr/local ]; then
-    rm -f /usr/local
-fi
-mkdir -p /usr/local/bin
-ln -sf /usr/bin/podman /usr/local/bin/docker
+# In bootc/ostree images, /usr/local may be a symlink to /var/usrlocal
+# Resolve the actual path and ensure bin directory exists
+ACTUAL_LOCAL_PATH=$(readlink -f /usr/local 2>/dev/null || echo "/usr/local")
+mkdir -p "${ACTUAL_LOCAL_PATH}/bin"
+ln -sf /usr/bin/podman "${ACTUAL_LOCAL_PATH}/bin/docker"
 
 #### Security Hardening
 
@@ -61,10 +60,11 @@ dnf5 install -y git git-lfs direnv fzf ripgrep fd-find jq
 
 # Install k9s (Kubernetes TUI)
 K9S_VERSION="v0.32.7"
-mkdir -p /tmp/k9s
+ACTUAL_LOCAL_PATH=$(readlink -f /usr/local 2>/dev/null || echo "/usr/local")
+mkdir -p /tmp/k9s "${ACTUAL_LOCAL_PATH}/bin"
 curl -sL "https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_amd64.tar.gz" | tar xz -C /tmp/k9s
-mv /tmp/k9s/k9s /usr/local/bin/k9s
-chmod +x /usr/local/bin/k9s
+mv /tmp/k9s/k9s "${ACTUAL_LOCAL_PATH}/bin/k9s"
+chmod +x "${ACTUAL_LOCAL_PATH}/bin/k9s"
 rm -rf /tmp/k9s
 
 # Create distrobox assembly config for new users
