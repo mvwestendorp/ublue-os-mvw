@@ -25,9 +25,9 @@ cp /ctx/vscode-settings.json /etc/skel/.config/Code/User/settings.json
 systemctl --global enable podman.socket
 
 # Create docker compatibility symlink
-# Ensure /usr/local/bin exists (remove if it's a file, create if directory)
-if [ -f /usr/local/bin ]; then
-    rm -f /usr/local/bin
+# Ensure /usr/local exists as a directory (remove if it's a file)
+if [ -f /usr/local ]; then
+    rm -f /usr/local
 fi
 mkdir -p /usr/local/bin
 ln -sf /usr/bin/podman /usr/local/bin/docker
