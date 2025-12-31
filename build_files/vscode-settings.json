@@ -1,0 +1,6 @@
+{
+    "terminal.integrated.defaultProfile.linux": "bash",
+    "podman.dockerPath": "podman",
+    "dev.containers.dockerPath": "podman",
+    "remote.containers.dockerPath": "podman"
+}

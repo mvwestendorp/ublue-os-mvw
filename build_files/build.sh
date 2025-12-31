@@ -19,16 +19,7 @@ dnf5 install -y code
 
 # Configure VS Code for podman and set default preferences
 mkdir -p /etc/skel/.config/Code/User
-
-# Default settings that users can override
-cat > /etc/skel/.config/Code/User/settings.json << 'EOF'
-{
-    "terminal.integrated.defaultProfile.linux": "bash",
-    "podman.dockerPath": "podman",
-    "dev.containers.dockerPath": "podman",
-    "remote.containers.dockerPath": "podman"
-}
-EOF
+cp /ctx/build_files/vscode-settings.json /etc/skel/.config/Code/User/settings.json
 
 # Enable podman socket for all users by default
 systemctl --global enable podman.socket
@@ -52,6 +43,29 @@ systemctl enable firewalld
 # Clean up package cache to reduce image size and attack surface
 dnf5 clean all
 rm -rf /var/cache/dnf5/*
+
+#### Development Tools (Host-level only)
+
+# Kubernetes tools (need host access)
+dnf5 install -y kubernetes-client helm
+
+# Container tools for development
+dnf5 install -y distrobox buildah skopeo
+
+# Essential CLI tools
+dnf5 install -y git git-lfs direnv fzf ripgrep fd-find jq
+
+# Install k9s (Kubernetes TUI)
+K9S_VERSION="v0.32.7"
+mkdir -p /tmp/k9s
+curl -sL "https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_amd64.tar.gz" | tar xz -C /tmp/k9s
+mv /tmp/k9s/k9s /usr/local/bin/k9s
+chmod +x /usr/local/bin/k9s
+rm -rf /tmp/k9s
+
+# Create distrobox assembly config for new users
+mkdir -p /etc/skel/.config/distrobox
+cp /ctx/build_files/distrobox.ini /etc/skel/.config/distrobox/distrobox.ini
 
 # Use a COPR Example:
 #
