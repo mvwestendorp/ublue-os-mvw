@@ -180,7 +180,7 @@ jobs:
           scan-type: 'image'
 
       - name: Upload Trivy results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@6db8d6351fd0be61f9ed8ebd12ccd35dcec51fea # v3.28.6
+        uses: github/codeql-action/upload-sarif@5d4e8d1aca955e8d8589aabd499c5cae939e33c7 # v3.28.6
         if: steps.build_image.outcome == 'success' && always()
         with:
           sarif_file: 'trivy-results.sarif'
