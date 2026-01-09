@@ -59,12 +59,10 @@ dnf5 install -y distrobox buildah skopeo
 dnf5 install -y git git-lfs direnv fzf ripgrep fd-find jq
 
 # Install k9s (Kubernetes TUI)
-K9S_VERSION="v0.32.7"
-ACTUAL_LOCAL_PATH=$(readlink -f /usr/local 2>/dev/null || echo "/usr/local")
-mkdir -p /tmp/k9s "${ACTUAL_LOCAL_PATH}/bin"
+K9S_VERSION="v0.50.16"
+mkdir -p /tmp/k9s
 curl -sL "https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_amd64.tar.gz" | tar xz -C /tmp/k9s
-mv /tmp/k9s/k9s "${ACTUAL_LOCAL_PATH}/bin/k9s"
-chmod +x "${ACTUAL_LOCAL_PATH}/bin/k9s"
+install -m 0755 /tmp/k9s/k9s /usr/bin/k9s
 rm -rf /tmp/k9s
 
 # Create distrobox assembly config for new users
