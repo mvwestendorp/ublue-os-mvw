@@ -36,12 +36,46 @@ ln -sf /usr/bin/podman "${ACTUAL_LOCAL_PATH}/bin/docker"
 # Ensure SELinux is enforcing
 sed -i 's/^SELINUX=.*/SELINUX=enforcing/' /etc/selinux/config
 
-# Install security scanning tools
-dnf5 install -y openscap-scanner scap-security-guide
+# Install security scanning and audit tools
+dnf5 install -y openscap-scanner scap-security-guide audit
 
 # Enable and configure firewall
 dnf5 install -y firewalld
 systemctl enable firewalld
+
+# Enable audit daemon for security logging
+systemctl enable auditd
+
+# Remove legacy insecure protocols
+dnf5 remove -y telnet rsh-client 2>/dev/null || true
+
+# Kernel hardening - network protections (non-obtrusive)
+cat > /etc/sysctl.d/99-security-hardening.conf <<'EOF'
+# Protect against IP spoofing
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+
+# Enable SYN cookies for DoS protection
+net.ipv4.tcp_syncookies = 1
+
+# Disable source routing
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.accept_source_route = 0
+
+# Disable ICMP redirects
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv4.conf.all.secure_redirects = 0
+net.ipv4.conf.default.secure_redirects = 0
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv6.conf.default.accept_redirects = 0
+
+# Ignore ICMP broadcast requests
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+net.ipv4.icmp_ignore_bogus_error_responses = 1
+EOF
 
 # Clean up package cache to reduce image size and attack surface
 dnf5 clean all
@@ -58,12 +92,8 @@ dnf5 install -y distrobox buildah skopeo
 # Essential CLI tools
 dnf5 install -y git git-lfs direnv fzf ripgrep fd-find jq
 
-# Install k9s (Kubernetes TUI)
-K9S_VERSION="v0.50.16"
-mkdir -p /tmp/k9s
-curl -sL "https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_amd64.tar.gz" | tar xz -C /tmp/k9s
-install -m 0755 /tmp/k9s/k9s /usr/bin/k9s
-rm -rf /tmp/k9s
+# Install k9s (Kubernetes TUI) with SHA256 verification
+brew install k9s
 
 # Create distrobox assembly config for new users
 mkdir -p /etc/skel/.config/distrobox
