@@ -89,10 +89,6 @@ dnf5 install -y kubernetes-client helm
 # Container tools for development
 dnf5 install -y distrobox buildah skopeo
 
-# Install ZFS filesystem support
-dnf5 install -y https://zfsonlinux.org/fedora/zfs-release-2-6$(rpm --eval "%{dist}").noarch.rpm
-dnf5 install -y kernel-devel zfs zfs-dracut
-
 # Essential CLI tools
 dnf5 install -y git git-lfs direnv fzf ripgrep fd-find jq
 
