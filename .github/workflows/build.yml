@@ -178,6 +178,7 @@ jobs:
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
           scan-type: 'image'
+          skip-dirs: 'sysroot/ostree/repo'
 
       - name: Upload Trivy results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@6db8d6351fd0be61f9ed8ebd12ccd35dcec51fea # v3.28.6
@@ -195,6 +196,7 @@ jobs:
           image-ref: '${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DEFAULT_TAG }}'
           format: 'table'
           severity: 'CRITICAL,HIGH'
+          skip-dirs: 'sysroot/ostree/repo'
 
       # This section is optional and only needs to be enabled if you plan on distributing
       # your project for others to consume. You will need to create a public and private key
