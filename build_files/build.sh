@@ -93,7 +93,7 @@ dnf5 install -y distrobox buildah skopeo
 dnf5 install -y git git-lfs direnv fzf ripgrep fd-find jq
 
 # Install gnu radio
-dnf5 install -y gnuradio
+dnf5 install -y gnuradio gnuradio-osmosdr
 
 # Install k9s (Kubernetes TUI) with SHA256 verification
 K9S_VERSION="v0.50.18"
