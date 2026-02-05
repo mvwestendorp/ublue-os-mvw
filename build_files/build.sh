@@ -95,6 +95,19 @@ dnf5 install -y git git-lfs direnv fzf ripgrep fd-find jq
 # Install gnu radio
 dnf5 install -y gnuradio gnuradio-osmosdr
 
+# Set environment variables for GNU Radio
+echo 'export PYTHONPATH=/usr/lib64/python3/site-packages:$PYTHONPATH' >> /etc/profile.d/gnuradio.sh
+echo 'export LD_LIBRARY_PATH=/usr/lib64:$LD_LIBRARY_PATH' >> /etc/profile.d/gnuradio.sh
+
+# Create symlink for gnuradio-companion
+ln -sf /usr/bin/gnuradio-companion /usr/local/bin/gnuradio-companion 2>/dev/null || true
+
+# Verify GNU Radio installation
+echo "Verifying GNU Radio installation..."
+python3 -c "import gnuradio; print('GNU Radio version:', gnuradio.__version__)" || echo "WARNING: GNU Radio Python module not found"
+which gnuradio-companion || echo "WARNING: gnuradio-companion not found in PATH"
+
+
 # Install k9s (Kubernetes TUI) with SHA256 verification
 K9S_VERSION="v0.50.18"
 K9S_SHA256="0b697ed4aa80997f7de4deeed6f1fba73df191b28bf691b1f28d2f45fa2a9e9b"
