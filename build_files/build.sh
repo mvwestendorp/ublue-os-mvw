@@ -93,7 +93,7 @@ dnf5 install -y distrobox buildah skopeo
 dnf5 install -y git git-lfs direnv fzf ripgrep fd-find jq
 
 # Install gnu radio
-dnf5 install -y gnuradio gnuradio-osmosdr
+dnf5 install -y gnuradio
 
 # Set environment variables for GNU Radio
 echo 'export PYTHONPATH=/usr/lib64/python3/site-packages:$PYTHONPATH' >> /etc/profile.d/gnuradio.sh
