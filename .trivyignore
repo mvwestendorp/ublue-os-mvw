@@ -1,0 +1,62 @@
+# ============================================================
+# VS Code bundled node_modules — false positives
+# VS Code ships Electron with thousands of internal npm packages
+# under /usr/share/code/resources/app/node_modules/.  These are
+# never exposed to untrusted input and are not user-facing.
+# None of these packages are installed by this project.
+# ============================================================
+
+# diff — ReDoS; bundled inside VS Code, no user-facing input path
+GHSA-h6ch-v84p-w6p9
+
+# grunt — arbitrary code exec + race condition; build tool, never executed at runtime
+CVE-2020-7729
+CVE-2022-1537
+
+# handlebars — prototype pollution / RCE via untrusted template compilation;
+# no untrusted templates are compiled in this image
+CVE-2019-19919
+CVE-2021-23369
+CVE-2021-23383
+CVE-2019-20920
+GHSA-2cf5-4w76-r9qv
+GHSA-g9r4-xpmj-mj65
+GHSA-q2c6-c6pm-g3gh
+GHSA-q42p-pg8m-cqh6
+
+# ini — prototype pollution via malicious INI; transitive dep, no attacker-controlled INI input
+CVE-2020-7788
+
+# json (trentm/json) — command injection CLI tool; dev dependency, not exposed
+CVE-2020-7712
+
+# npm — scanner is reading a package.json declaration ("npm": "1.0.1") inside
+# VS Code's bundled deps, not the actual npm binary (Fedora ships npm 10.x+).
+# All findings below are against a phantom version.
+CVE-2018-7408
+CVE-2019-16775
+CVE-2019-16776
+CVE-2019-16777
+CVE-2026-0775
+
+# ============================================================
+# Base image artifacts — not installed by this project
+# ============================================================
+
+# pycrypto — heap-buffer overflow + weak ElGamal keys; detected via METADATA in the
+# base Aurora image.  python3-gnuradio has zero Python package dependencies (only .so
+# and ABI requirements).  No path to fix from this repo; upstream base image issue.
+CVE-2013-7459
+CVE-2018-6594
+
+# ============================================================
+# Upstream not yet released — waiting on rebuild
+# ============================================================
+
+# k9s v0.50.18 — built with Go 1.25.1; all four are Go stdlib CVEs fixed in 1.25.6.
+# No newer k9s release available yet.  Remove these once k9s is bumped.
+# https://github.com/derailed/k9s/issues/<TODO>
+CVE-2025-58183
+CVE-2025-61726
+CVE-2025-61728
+CVE-2025-61729

@@ -108,16 +108,9 @@ python3 -c "import gnuradio; print('GNU Radio version:', gnuradio.__version__)" 
 which gnuradio-companion || echo "WARNING: gnuradio-companion not found in PATH"
 
 
-# Install k9s (Kubernetes TUI) with SHA256 verification
-K9S_VERSION="v0.50.18"
-K9S_SHA256="0b697ed4aa80997f7de4deeed6f1fba73df191b28bf691b1f28d2f45fa2a9e9b"
-mkdir -p /tmp/k9s
-curl -sL "https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_amd64.tar.gz" -o /tmp/k9s.tar.gz
-echo "${K9S_SHA256}  /tmp/k9s.tar.gz" | sha256sum -c - || { echo "ERROR: k9s checksum verification failed"; exit 1; }
-tar xzf /tmp/k9s.tar.gz -C /tmp/k9s
-/tmp/k9s/k9s version || { echo "ERROR: k9s binary validation failed"; exit 1; }
-install -m 0755 /tmp/k9s/k9s /usr/bin/k9s
-rm -rf /tmp/k9s /tmp/k9s.tar.gz
+# Build k9s from source to pick up Go stdlib CVE fixes (see build-k9s.sh).
+# Revert to binary download once k9s ships a release built with Go >= 1.25.6.
+/ctx/build-k9s.sh
 
 # Create distrobox assembly config for new users
 mkdir -p /etc/skel/.config/distrobox

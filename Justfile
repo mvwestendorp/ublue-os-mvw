@@ -328,7 +328,7 @@ scan-image $target_image=("localhost/" + image_name) $tag=default_tag:
 
     # Check if trivy is installed
     if command -v trivy &> /dev/null; then
-        trivy image --severity HIGH,CRITICAL "${target_image}:${tag}"
+        trivy image --severity HIGH,CRITICAL --skip-dirs usr/share/code/resources/app/node_modules "${target_image}:${tag}"
     elif command -v grype &> /dev/null; then
         grype "${target_image}:${tag}"
     else
