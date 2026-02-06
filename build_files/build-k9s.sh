@@ -68,7 +68,10 @@ sed -i '/^toolchain /d' go.mod
 # ── 5. Build ─────────────────────────────────────────────────
 # GOTOOLCHAIN=local prevents Go from downloading a pinned toolchain
 # even if go.mod or GOTOOLCHAIN env would otherwise request one.
+# Set GOCACHE and GOMODCACHE to /tmp to avoid permission issues in container builds
 export GOTOOLCHAIN=local
+export GOCACHE=/tmp/go-build-cache
+export GOMODCACHE=/tmp/go-mod-cache
 make build
 
 # ── 6. Smoke-test and install ────────────────────────────────
