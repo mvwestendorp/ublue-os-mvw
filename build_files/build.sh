@@ -111,6 +111,11 @@ which sdrpp || echo "WARNING: sdrpp not found in PATH"
 mkdir -p /etc/skel/.config/distrobox
 cp /ctx/distrobox.ini /etc/skel/.config/distrobox/distrobox.ini
 
+#### Storage Configuration
+
+# Configure system to use data-ssd for heavy operations
+/ctx/storage-data-ssd.sh
+
 #### Final Cleanup
 
 # Clean up package cache to reduce image size and attack surface
