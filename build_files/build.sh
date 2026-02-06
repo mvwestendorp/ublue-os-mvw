@@ -6,10 +6,9 @@ set -ouex pipefail
 
 # Packages can be installed from any enabled yum repo on the image.
 # RPMfusion repos are available by default in ublue main images
-# List of rpmfusion packages can be found here:
-# https://mirrors.rpmfusion.org/mirrorlist?path=free/fedora/updates/39/x86_64/repoview/index.html&protocol=https&redirect=1
+# List of rpmfusion packages: https://mirrors.rpmfusion.org/
 
-# this installs a package from fedora repos
+# Basic utilities
 dnf5 install -y tmux hunspell-nl pandoc
 
 # Install vscode
@@ -36,20 +35,16 @@ ln -sf /usr/bin/podman "${ACTUAL_LOCAL_PATH}/bin/docker"
 # Ensure SELinux is enforcing
 sed -i 's/^SELINUX=.*/SELINUX=enforcing/' /etc/selinux/config
 
-# Install security scanning and audit tools
-dnf5 install -y openscap-scanner scap-security-guide audit
+# Install security tools (combined for performance)
+dnf5 install -y openscap-scanner scap-security-guide audit firewalld
 
-# Enable and configure firewall
-dnf5 install -y firewalld
-systemctl enable firewalld
+# Enable security services
+systemctl enable firewalld auditd
 
-# Enable audit daemon for security logging
-systemctl enable auditd
-
-# Remove legacy insecure protocols
+# Remove legacy insecure protocols (if present)
 dnf5 remove -y telnet rsh-client 2>/dev/null || true
 
-# Kernel hardening - network protections (non-obtrusive)
+# Network security hardening via sysctl
 cat > /etc/sysctl.d/99-security-hardening.conf <<'EOF'
 # Protect against IP spoofing
 net.ipv4.conf.all.rp_filter = 1
@@ -77,55 +72,47 @@ net.ipv4.icmp_echo_ignore_broadcasts = 1
 net.ipv4.icmp_ignore_bogus_error_responses = 1
 EOF
 
-# Clean up package cache to reduce image size and attack surface
-dnf5 clean all
-rm -rf /var/cache/dnf5/*
+#### Development Tools
 
-#### Development Tools (Host-level only)
+# Install all development tools in a single transaction for performance
+dnf5 install -y \
+  kubernetes-client helm \
+  distrobox buildah skopeo \
+  git git-lfs direnv fzf ripgrep fd-find jq \
+  gnuradio python3-gnuradio SoapySDR soapy-rtlsdr rtl-sdr sdrpp
 
-# Kubernetes tools (need host access)
-dnf5 install -y kubernetes-client helm
-
-# Container tools for development
-dnf5 install -y distrobox buildah skopeo
-
-# Essential CLI tools
-dnf5 install -y git git-lfs direnv fzf ripgrep fd-find jq
-
-# Install gnu radio
-dnf5 install -y gnuradio python3-gnuradio SoapySDR soapy-rtlsdr rtl-sdr sdrpp
+#### GNU Radio & SDR Configuration
 
 # Set environment variables for GNU Radio
-echo 'export PYTHONPATH=/usr/lib64/python3/site-packages:$PYTHONPATH' >> /etc/profile.d/gnuradio.sh
-echo 'export LD_LIBRARY_PATH=/usr/lib64:$LD_LIBRARY_PATH' >> /etc/profile.d/gnuradio.sh
+cat >> /etc/profile.d/gnuradio.sh <<'EOF'
+export PYTHONPATH=/usr/lib64/python3/site-packages:$PYTHONPATH
+export LD_LIBRARY_PATH=/usr/lib64:$LD_LIBRARY_PATH
+EOF
 
-# Create symlink for gnuradio-companion
+# Create symlinks for SDR applications
 ln -sf /usr/bin/gnuradio-companion /usr/local/bin/gnuradio-companion 2>/dev/null || true
-
-# Create symlink for sdrpp
 ln -sf /usr/bin/sdrpp /usr/local/bin/sdrpp 2>/dev/null || true
 
-# Verify GNU Radio installation
-echo "Verifying GNU Radio installation..."
+# Verify GNU Radio and SDR++ installation
+echo "Verifying SDR tools installation..."
 python3 -c "import gnuradio; print('GNU Radio version:', gnuradio.__version__)" || echo "WARNING: GNU Radio Python module not found"
 which gnuradio-companion || echo "WARNING: gnuradio-companion not found in PATH"
+which sdrpp || echo "WARNING: sdrpp not found in PATH"
 
+#### Build k9s from Source
 
-# Build k9s from source to pick up Go stdlib CVE fixes (see build-k9s.sh).
-# Revert to binary download once k9s ships a release built with Go >= 1.25.6.
+# Build k9s to pick up Go stdlib CVE fixes (see build-k9s.sh)
+# Revert to binary download once k9s ships a release built with Go >= 1.25.6
 /ctx/build-k9s.sh
+
+#### User Environment Configuration
 
 # Create distrobox assembly config for new users
 mkdir -p /etc/skel/.config/distrobox
 cp /ctx/distrobox.ini /etc/skel/.config/distrobox/distrobox.ini
 
-# Use a COPR Example:
-#
-# dnf5 -y copr enable ublue-os/staging
-# dnf5 -y install package
-# Disable COPRs so they don't end up enabled on the final image:
-# dnf5 -y copr disable ublue-os/staging
+#### Final Cleanup
 
-#### Example for enabling a System Unit File
-
-systemctl enable podman.socket
+# Clean up package cache to reduce image size and attack surface
+dnf5 clean all
+rm -rf /var/cache/dnf5/*
