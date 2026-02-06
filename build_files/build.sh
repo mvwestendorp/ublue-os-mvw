@@ -102,6 +102,9 @@ echo 'export LD_LIBRARY_PATH=/usr/lib64:$LD_LIBRARY_PATH' >> /etc/profile.d/gnur
 # Create symlink for gnuradio-companion
 ln -sf /usr/bin/gnuradio-companion /usr/local/bin/gnuradio-companion 2>/dev/null || true
 
+# Create symlink for sdrpp
+ln -sf /usr/bin/sdrpp /usr/local/bin/sdrpp 2>/dev/null || true
+
 # Verify GNU Radio installation
 echo "Verifying GNU Radio installation..."
 python3 -c "import gnuradio; print('GNU Radio version:', gnuradio.__version__)" || echo "WARNING: GNU Radio Python module not found"
