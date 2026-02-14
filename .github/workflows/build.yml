@@ -181,7 +181,7 @@ jobs:
           skip-dirs: 'sysroot/ostree/repo,usr/share/code/resources/app/node_modules'
 
       - name: Upload Trivy results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@cdefb33c0f6224e58673d9004f47f7cb3e328b89 # v3.28.6
+        uses: github/codeql-action/upload-sarif@9e907b5e64f6b83e7804b09294d44122997950d6 # v3.28.6
         if: steps.build_image.outcome == 'success' && always()
         with:
           sarif_file: 'trivy-results.sarif'
