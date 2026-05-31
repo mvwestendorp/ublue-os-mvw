@@ -23,12 +23,13 @@ cp /ctx/vscode-settings.json /etc/skel/.config/Code/User/settings.json
 # Enable podman socket for all users by default
 systemctl --global enable podman.socket
 
-# Create docker compatibility symlink
-# In bootc/ostree images, /usr/local may be a symlink to /var/usrlocal
-# Resolve the actual path and ensure bin directory exists
-ACTUAL_LOCAL_PATH=$(readlink -f /usr/local 2>/dev/null || echo "/usr/local")
-mkdir -p "${ACTUAL_LOCAL_PATH}/bin"
-ln -sf /usr/bin/podman "${ACTUAL_LOCAL_PATH}/bin/docker"
+# Declare /var/usrlocal symlinks via tmpfiles.d so bootc provisions them on first boot
+mkdir -p /usr/lib/tmpfiles.d
+cat > /usr/lib/tmpfiles.d/var-usrlocal-symlinks.conf <<'EOF'
+L /var/usrlocal/bin/docker - - - - /usr/bin/podman
+L /var/usrlocal/bin/gnuradio-companion - - - - /usr/bin/gnuradio-companion
+L /var/usrlocal/bin/sdrpp - - - - /usr/bin/sdrpp
+EOF
 
 #### Security Hardening
 
@@ -89,9 +90,7 @@ export PYTHONPATH=/usr/lib64/python3/site-packages:$PYTHONPATH
 export LD_LIBRARY_PATH=/usr/lib64:$LD_LIBRARY_PATH
 EOF
 
-# Create symlinks for SDR applications
-ln -sf /usr/bin/gnuradio-companion /usr/local/bin/gnuradio-companion 2>/dev/null || true
-ln -sf /usr/bin/sdrpp /usr/local/bin/sdrpp 2>/dev/null || true
+# Symlinks are declared in tmpfiles.d above (see var-usrlocal-symlinks.conf)
 
 # Verify GNU Radio and SDR++ installation
 echo "Verifying SDR tools installation..."
@@ -120,4 +119,4 @@ cp /ctx/distrobox.ini /etc/skel/.config/distrobox/distrobox.ini
 
 # Clean up package cache to reduce image size and attack surface
 dnf5 clean all
-rm -rf /var/cache/dnf5/*
+rm -rf /var/cache/dnf5/* /run/dnf /run/selinux-policy /var/lib/dnf/repos /var/lib/dnf/system-repo.lock

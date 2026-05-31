@@ -109,7 +109,7 @@ RequiresMountsFor=/var/mnt/data-ssd
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/usr/local/bin/init-data-ssd-storage.sh
+ExecStart=/usr/bin/init-data-ssd-storage.sh
 
 [Install]
 WantedBy=multi-user.target
@@ -119,9 +119,10 @@ EOF
 # 6. Initialization script
 ###############################################################################
 
-mkdir -p /usr/local/bin
+# Install to /usr/bin instead of /usr/local/bin to avoid /var lint warnings
+mkdir -p /usr/bin
 
-cat > /usr/local/bin/init-data-ssd-storage.sh <<'EOF'
+cat > /usr/bin/init-data-ssd-storage.sh <<'EOF'
 #!/bin/bash
 
 set -euo pipefail
@@ -160,7 +161,7 @@ done
 echo "✓ data-ssd storage initialized"
 EOF
 
-chmod +x /usr/local/bin/init-data-ssd-storage.sh
+chmod +x /usr/bin/init-data-ssd-storage.sh
 
 ###############################################################################
 # 7. Enable initialization service
@@ -202,3 +203,20 @@ else
 fi
 
 echo "✓ data-ssd storage configuration complete"
+
+###############################################################################
+# 10. SELinux Context Fix
+###############################################################################
+
+# Set correct SELinux contexts for storage directories
+if command -v chcon &>/dev/null; then
+    chcon -Rt container_var_lib_t "${BASE}/containers/storage" 2>/dev/null || true
+    chcon -Rt container_var_lib_t "${BASE}/user-containers" 2>/dev/null || true
+fi
+
+###############################################################################
+# 11. Run Directory Setup
+###############################################################################
+
+mkdir -p /run/containers/storage
+chmod 700 /run/containers/storage
