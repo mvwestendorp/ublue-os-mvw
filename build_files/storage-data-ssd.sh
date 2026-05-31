@@ -119,7 +119,6 @@ EOF
 # 6. Initialization script
 ###############################################################################
 
-# Install to /usr/bin instead of /usr/local/bin to avoid /var lint warnings
 mkdir -p /usr/bin
 
 cat > /usr/bin/init-data-ssd-storage.sh <<'EOF'
@@ -128,6 +127,7 @@ cat > /usr/bin/init-data-ssd-storage.sh <<'EOF'
 set -euo pipefail
 
 BASE="/var/mnt/data-ssd/system-storage"
+TMP_DIR="${BASE}/tmp"
 
 if [ ! -d "/var/mnt/data-ssd" ]; then
     echo "data-ssd not mounted, skipping initialization"
@@ -136,27 +136,46 @@ fi
 
 echo "Initializing data-ssd storage directories..."
 
-mkdir -p "${BASE}/tmp"
+# Ensure base directories exist
+mkdir -p "${TMP_DIR}"
 mkdir -p "${BASE}/containers/storage"
 mkdir -p "${BASE}/user-containers"
 
-chmod 1777 "${BASE}/tmp"
+# Set base permissions
+chmod 1777 "${TMP_DIR}"
 chmod 755 "${BASE}/containers"
 chmod 755 "${BASE}/user-containers"
 
-# Create per-user directories
+# CRITICAL FIX: Create user-specific temp directories for all existing users
+# and set ownership so VS Code/DevContainers can write there.
 for user_home in /home/*; do
     [ -d "${user_home}" ] || continue
 
     username="$(basename "${user_home}")"
-    user_storage="${BASE}/user-containers/${username}"
-
-    mkdir -p "${user_storage}"
-
-    if id "${username}" >/dev/null 2>&1; then
-        chown -R "${username}:${username}" "${user_storage}" || true
-    fi
+    
+    # Create the specific devcontainer temp dir for this user
+    USER_TMP="${TMP_DIR}/devcontainercli-${username}"
+    mkdir -p "${USER_TMP}"
+    
+    # Set ownership to the user
+    chown -R "${username}:${username}" "${USER_TMP}"
+    
+    # Also ensure the parent tmp dir allows user access (sticky bit handles deletion)
+    # But ensure the user can traverse
+    chmod 755 "${TMP_DIR}" 
+    
+    # Create user storage dir if needed
+    USER_STORAGE="${BASE}/user-containers/${username}"
+    mkdir -p "${USER_STORAGE}"
+    chown -R "${username}:${username}" "${USER_STORAGE}"
 done
+
+# Handle the current user if running interactively (optional safety net)
+if [ -n "${USER:-}" ] && [ -d "/home/${USER}" ]; then
+    USER_TMP="${TMP_DIR}/devcontainercli-${USER}"
+    mkdir -p "${USER_TMP}"
+    chown -R "${USER}:${USER}" "${USER_TMP}"
+fi
 
 echo "✓ data-ssd storage initialized"
 EOF
@@ -208,12 +227,14 @@ echo "✓ data-ssd storage configuration complete"
 # 10. SELinux Context Fix
 ###############################################################################
 
-# Set correct SELinux contexts for storage directories
+# Ensure the tmp directory has a context allowing user writes
+# container_tmp_t is usually safe for container-related temp files
 if command -v chcon &>/dev/null; then
+    echo "Setting SELinux contexts..."
+    chcon -Rt container_tmp_t "${BASE}/tmp" 2>/dev/null || true
     chcon -Rt container_var_lib_t "${BASE}/containers/storage" 2>/dev/null || true
     chcon -Rt container_var_lib_t "${BASE}/user-containers" 2>/dev/null || true
 fi
-
 ###############################################################################
 # 11. Run Directory Setup
 ###############################################################################
