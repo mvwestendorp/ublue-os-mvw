@@ -21,8 +21,33 @@ BASE="/var/mnt/data-ssd/system-storage"
 # 1. Ensure base directories exist immediately during image build
 ###############################################################################
 
-mkdir -p "${BASE}/tmp"
-mkdir -p "${BASE}/containers/storage"
+chown root:root "${BASE}"
+chmod 755 "${BASE}"
+
+# Ensure 'tmp' is writable by everyone (sticky bit)
+chown root:root "${BASE}/tmp"
+chmod 1777 "${BASE}/tmp"
+
+# Ensure 'containers/storage' is owned by root (for podman)
+chown root:root "${BASE}/containers/storage"
+chmod 755 "${BASE}/containers/storage"
+
+# If you want to support specific users, loop through /home as we did before:
+for user_home in /home/*; do
+    [ -d "${user_home}" ] || continue
+    username="$(basename "${user_home}")"
+    
+    # Create user-specific tmp dir
+    USER_TMP="${BASE}/tmp/devcontainercli-${username}"
+    mkdir -p "${USER_TMP}"
+    chown "${username}:${username}" "${USER_TMP}"
+    
+    # Create user storage dir
+    USER_STORAGE="${BASE}/user-containers/${username}"
+    mkdir -p "${USER_STORAGE}"
+    chown -R "${username}:${username}" "${USER_STORAGE}"
+done
+
 mkdir -p "${BASE}/user-containers"
 
 chmod 1777 "${BASE}/tmp"
@@ -241,3 +266,30 @@ fi
 
 mkdir -p /run/containers/storage
 chmod 700 /run/containers/storage
+
+###############################################################################
+# 12. Permanent SELinux File Contexts (CRITICAL FOR REBOOT)
+###############################################################################
+
+# Ensure semanage is installed
+if ! command -v semanage &>/dev/null; then
+    dnf install -y policycoreutils-python-utils
+fi
+
+# Add a rule so SELinux *always* labels this path as container_tmp_t
+# even after a reboot or filesystem remount
+if command -v semanage &>/dev/null; then
+    echo "Adding permanent SELinux file context rules..."
+    
+    # Rule for the tmp directory
+    semanage fcontext -a -t container_tmp_t "/var/mnt/data-ssd/system-storage/tmp(/.*)?"
+    
+    # Rule for the storage directory
+    semanage fcontext -a -t container_var_lib_t "/var/mnt/data-ssd/system-storage/containers(/.*)?"
+    
+    # Rule for user containers
+    semanage fcontext -a -t container_var_lib_t "/var/mnt/data-ssd/system-storage/user-containers(/.*)?"
+    
+    # Apply the rules immediately
+    restorecon -Rv /var/mnt/data-ssd/system-storage
+fi
