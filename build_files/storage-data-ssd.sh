@@ -146,14 +146,15 @@ EOF
 
 mkdir -p /usr/bin
 
-cat > /usr/bin/init-data-ssd-storage.sh <<'EOF'
-#!/bin/bash
 
+cat > /usr/bin/init-data-ssd-storage.sh <<'SCRIPT_EOF'
+#!/bin/bash
 set -euo pipefail
 
 BASE="/var/mnt/data-ssd/system-storage"
-TMP_DIR="${BASE}/tmp"
 
+# SAFETY CHECK: If the mount doesn't exist, do nothing.
+# This happens during image build or if the SSD is unplugged.
 if [ ! -d "/var/mnt/data-ssd" ]; then
     echo "data-ssd not mounted, skipping initialization"
     exit 0
@@ -161,49 +162,47 @@ fi
 
 echo "Initializing data-ssd storage directories..."
 
-# Ensure base directories exist
-mkdir -p "${TMP_DIR}"
+# Create directories
+mkdir -p "${BASE}/tmp"
 mkdir -p "${BASE}/containers/storage"
 mkdir -p "${BASE}/user-containers"
 
-# Set base permissions
-chmod 1777 "${TMP_DIR}"
+# Permissions
+chmod 1777 "${BASE}/tmp"
 chmod 755 "${BASE}/containers"
 chmod 755 "${BASE}/user-containers"
 
-# CRITICAL FIX: Create user-specific temp directories for all existing users
-# and set ownership so VS Code/DevContainers can write there.
+# Loop through users
 for user_home in /home/*; do
     [ -d "${user_home}" ] || continue
-
     username="$(basename "${user_home}")"
     
-    # Create the specific devcontainer temp dir for this user
-    USER_TMP="${TMP_DIR}/devcontainercli-${username}"
+    USER_TMP="${BASE}/tmp/devcontainercli-${username}"
     mkdir -p "${USER_TMP}"
+    chown "${username}:${username}" "${USER_TMP}"
     
-    # Set ownership to the user
-    chown -R "${username}:${username}" "${USER_TMP}"
-    
-    # Also ensure the parent tmp dir allows user access (sticky bit handles deletion)
-    # But ensure the user can traverse
-    chmod 755 "${TMP_DIR}" 
-    
-    # Create user storage dir if needed
     USER_STORAGE="${BASE}/user-containers/${username}"
     mkdir -p "${USER_STORAGE}"
     chown -R "${username}:${username}" "${USER_STORAGE}"
 done
 
-# Handle the current user if running interactively (optional safety net)
-if [ -n "${USER:-}" ] && [ -d "/home/${USER}" ]; then
-    USER_TMP="${TMP_DIR}/devcontainercli-${USER}"
-    mkdir -p "${USER_TMP}"
-    chown -R "${USER}:${USER}" "${USER_TMP}"
+# SELinux Contexts
+if command -v chcon &>/dev/null; then
+    chcon -Rt container_tmp_t "${BASE}/tmp" 2>/dev/null || true
+    chcon -Rt container_var_lib_t "${BASE}/containers/storage" 2>/dev/null || true
+    chcon -Rt container_var_lib_t "${BASE}/user-containers" 2>/dev/null || true
+fi
+
+# Permanent SELinux Rules
+if command -v semanage &>/dev/null; then
+    semanage fcontext -a -t container_tmp_t "/var/mnt/data-ssd/system-storage/tmp(/.*)?" 2>/dev/null || true
+    semanage fcontext -a -t container_var_lib_t "/var/mnt/data-ssd/system-storage/containers(/.*)?" 2>/dev/null || true
+    semanage fcontext -a -t container_var_lib_t "/var/mnt/data-ssd/system-storage/user-containers(/.*)?" 2>/dev/null || true
+    restorecon -Rv /var/mnt/data-ssd/system-storage 2>/dev/null || true
 fi
 
 echo "✓ data-ssd storage initialized"
-EOF
+SCRIPT_EOF
 
 chmod +x /usr/bin/init-data-ssd-storage.sh
 
