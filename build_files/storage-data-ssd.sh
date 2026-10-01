@@ -47,7 +47,6 @@ runroot = "/run/containers/storage"
 pull_options = {enable_partial_images = "true", use_hard_links = "false"}
 [storage.options.overlay]
 mountopt = "nodev,metacopy=on"
-mount_program = "/usr/bin/fuse-overlayfs"
 EOF
 
 mkdir -p /etc/skel/.config/containers
@@ -59,11 +58,7 @@ pull_options = {enable_partial_images = "true", use_hard_links = "false"}
 EOF
 
 cat > /etc/systemd/system/data-ssd-init.service <<'EOF'
-[Unit]
-Description=Initialize data-ssd storage directories
-After=local-fs.target zfs-mount.service
-Wants=zfs-mount.service
-RequiresMountsFor=/var/mnt/data-ssd
+
 [Service]
 Type=oneshot
 RemainAfterExit=yes
