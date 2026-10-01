@@ -58,7 +58,10 @@ pull_options = {enable_partial_images = "true", use_hard_links = "false"}
 EOF
 
 cat > /etc/systemd/system/data-ssd-init.service <<'EOF'
-
+[Unit]
+Description=Initialize data-ssd storage directories
+After=local-fs.target
+RequiresMountsFor=/var/mnt/data-ssd
 [Service]
 Type=oneshot
 RemainAfterExit=yes
@@ -85,11 +88,6 @@ for user_home in /home/*; do
     mkdir -p "${USER_TMP}" "${USER_STORAGE}"
     chown "${username}:${username}" "${USER_TMP}" "${USER_STORAGE}"
 done
-if command -v chcon &>/dev/null; then
-    chcon -Rt container_tmp_t "${BASE}/tmp" 2>/dev/null || true
-    chcon -Rt container_var_lib_t "${BASE}/containers/storage" 2>/dev/null || true
-    chcon -Rt container_var_lib_t "${BASE}/user-containers" 2>/dev/null || true
-fi
 if command -v semanage &>/dev/null; then
     semanage fcontext -a -t container_tmp_t "/var/mnt/data-ssd/system-storage/tmp(/.*)?" 2>/dev/null || true
     semanage fcontext -a -t container_var_lib_t "/var/mnt/data-ssd/system-storage/containers(/.*)?" 2>/dev/null || true
