@@ -15,11 +15,18 @@ else
     for user_home in /home/*; do
         [ -d "${user_home}" ] || continue
         username="$(basename "${user_home}")"
+    
+        if ! id "$username" >/dev/null 2>&1; then
+            echo "Skipping ${user_home}: no matching Unix user"
+            continue
+        fi
+    
         USER_TMP="${BASE}/tmp/devcontainercli-${username}"
         USER_STORAGE="${BASE}/user-containers/${username}"
         mkdir -p "${USER_TMP}" "${USER_STORAGE}"
         chown "${username}:${username}" "${USER_TMP}" "${USER_STORAGE}"
     done
+
 
     if command -v chcon &>/dev/null; then
         chcon -Rt container_tmp_t "${BASE}/tmp" 2>/dev/null || true
@@ -83,11 +90,18 @@ chmod 755 "${BASE}/containers" "${BASE}/user-containers"
 for user_home in /home/*; do
     [ -d "${user_home}" ] || continue
     username="$(basename "${user_home}")"
+
+    if ! id "$username" >/dev/null 2>&1; then
+        echo "Skipping ${user_home}: no matching Unix user"
+        continue
+    fi
+
     USER_TMP="${BASE}/tmp/devcontainercli-${username}"
     USER_STORAGE="${BASE}/user-containers/${username}"
     mkdir -p "${USER_TMP}" "${USER_STORAGE}"
     chown "${username}:${username}" "${USER_TMP}" "${USER_STORAGE}"
 done
+
 if command -v semanage &>/dev/null; then
     semanage fcontext -a -t container_tmp_t "/var/mnt/data-ssd/system-storage/tmp(/.*)?" 2>/dev/null || true
     semanage fcontext -a -t container_var_lib_t "/var/mnt/data-ssd/system-storage/containers(/.*)?" 2>/dev/null || true
